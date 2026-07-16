@@ -1,5 +1,4 @@
 export class MathExtra {
-
     static clamp(value: number, min: number, max: number): number {
         return Math.max(min, Math.min(max, value));
     }
@@ -128,5 +127,21 @@ export class MathExtra {
             H4 = (H4 + E) & 0x0ffffffff;
         }
         return cvt_hex(H0) + cvt_hex(H1) + cvt_hex(H2) + cvt_hex(H3) + cvt_hex(H4);
+    }
+    static formatNumber(x: number, decimalPlaces: number, totalLength: number): string {
+        let formatted = "";
+
+        const abs = Math.abs(x);
+        const int = Math.floor(abs);
+        const decimal = abs - int;
+
+        const reqIntLength = totalLength - (decimalPlaces > 0 ? decimalPlaces + 1 : 0) - 1; // -1 for sign
+        formatted += x >= 0 ? "+" : "-";
+        formatted += int.toString().padStart(reqIntLength);
+        if (decimalPlaces > 0) {
+            formatted += ".";
+            formatted += decimal.toFixed(decimalPlaces).slice(2).padEnd(decimalPlaces, '0');
+        }
+        return formatted;
     }
 }

@@ -1,4 +1,5 @@
 import { Network } from "@lib/components/neuralNetwork";
+import { MathExtra } from "@lib/utils/mathExtra";
 import * as THREE from "three";
 
 class Vertex {
@@ -55,6 +56,7 @@ for (let i = 0; i < weightsLength; i++) {
     const sliderClone = sliderTemplateElement.content.cloneNode(true) as DocumentFragment;
     const sliderLabel = sliderClone.querySelector("label") as HTMLLabelElement;
     const sliderInput = sliderClone.querySelector("input") as HTMLInputElement;
+    const sliderValueDisplay = sliderClone.querySelector("#value") as HTMLSpanElement;
     sliderInput.id = `weight-${i}`;
     sliderInput.name = `weight-${i}`;
     sliderInput.value = network.weights[i]!.toString();
@@ -79,7 +81,15 @@ for (let i = 0; i < weightsLength; i++) {
     mainContainerElement.appendChild(sliderClone);
     sliders.push(sliderInput);
 
-    sliderInput.addEventListener("input", updateScore);
+    sliderInput.addEventListener("input", () => {
+        updateDisplay();
+        updateScore();
+    });
+
+    updateDisplay();
+    function updateDisplay() {
+        sliderValueDisplay.textContent = MathExtra.formatNumber(parseFloat(sliderInput.value), 5, 9);
+    }
 }
 
 function syncAxisCheckboxes() {
@@ -166,7 +176,7 @@ function updateCameraPosition() {
 function updateScore() {
     network.weights = sliders.map(slider => parseFloat(slider.value));
     const output = network.predict(randomInput);
-    scoreElement.textContent = `Score: ${output.toFixed(10)}`;
+    scoreElement.textContent = `Score: ${MathExtra.formatNumber(output * 10000, 0, 6)}`;
     renderOutputScoreGraph();
 }
 
@@ -181,7 +191,7 @@ function generateOutputScoreMatrix(network: Network, range: [number, number], st
             weights[selectedWeightIndices[1]] = range[0]! + j * step;
             network.weights = weights;
             const output = network.predict(randomInput);
-            outputScoreMatrix.push(new Vertex(weights[selectedWeightIndices[0]]!, weights[selectedWeightIndices[1]]!, output * 2));
+            outputScoreMatrix.push(new Vertex(weights[selectedWeightIndices[0]]!, weights[selectedWeightIndices[1]]!, output));
         }
     }
     network.weights = currentWeights;
