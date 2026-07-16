@@ -3,7 +3,7 @@ import { MathExtra } from "@lib/utils/mathExtra";
 import { createWeightAxisControls } from "@lib/components/graphControls";
 import { WeightSurfaceGraph } from "@lib/components/weightSurfaceGraph";
 
-const mainContainerElement = document.getElementById("mainContainer") as HTMLDivElement;
+const controlsContainerElement = document.getElementById("controlsContainer") as HTMLDivElement;
 const scoreElement = document.getElementById("score") as HTMLDivElement;
 const sliderTemplateElement = document.getElementById("sliderTemplate") as HTMLTemplateElement;
 const rotationSliderElement = document.getElementById("rotation-y") as HTMLInputElement;
@@ -32,7 +32,7 @@ const graph = new WeightSurfaceGraph({
 });
 
 const controls = createWeightAxisControls({
-    container: mainContainerElement,
+    container: controlsContainerElement,
     template: sliderTemplateElement,
     weights: network.weights,
     biases: network.biases,

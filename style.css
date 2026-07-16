@@ -38,7 +38,7 @@ body {
     padding: 5px 10px;
 }
 
-#mainContainer {
+#controlsContainer {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -51,6 +51,7 @@ body {
     background-color: #1f2833a0;
     border-radius: 15px 0 0 0;
     backdrop-filter: blur(10px);
+    max-height: 100%;
 
     .slider {
         display: flex;
