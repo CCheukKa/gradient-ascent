@@ -15,6 +15,9 @@
 <body>
     <div class="buildWatermark">Build: #!build</div>
     <div id="controlsContainer">
+        <div class="blindModeToggle">
+            <input type="checkbox" id="blindModeToggleButton" name="blindModeToggle" checked />
+        </div>
         <div id="score">Score: 0</div>
         <div class="modeToggle" role="group" aria-label="Surface mode">
             <button type="button" class="modeToggleButton" data-mode="gaussian" aria-pressed="true">Gaussians</button>
@@ -41,11 +44,11 @@
                 </div>
             </template>
         </div>
-        <div class="slider">
+        <div id="rotationControls" class="slider">
             <label for="rotation-y">Rotate:</label>
             <input type="range" id="rotation-y" name="rotation-y" min="-180" max="180" step="1" value="0" />
         </div>
-        <div class="slider">
+        <div id="zoomControls" class="slider">
             <label for="zoom-distance">Zoom:</label>
             <input type="range" id="zoom-distance" name="zoom-distance" min="10" max="20" step="0.01" value="10" />
         </div>

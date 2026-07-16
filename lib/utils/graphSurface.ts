@@ -66,7 +66,7 @@ export function createRandomGaussianSurface(): GaussianBump[] {
     return Array.from({ length: 10 }, () => ({
         centerX: Math.random() * 12 - 6,
         centerY: Math.random() * 12 - 6,
-        amplitude: Math.random() * 1.5 + 0.5,
+        amplitude: Math.random() * 2 + 0.5,
         sigma: Math.random() * 1.5 + 0.5,
     }));
 }
