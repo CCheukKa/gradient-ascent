@@ -1,8 +1,9 @@
 import { Network } from "@lib/components/neuralNetwork";
 import { MathExtra } from "@lib/utils/mathExtra";
 import { createWeightAxisControls } from "@lib/components/graphControls";
-import { SurfaceMode, NetworkSurfaceGraph } from "@lib/components/networkSurfaceGraph";
-import { createRandomGaussianSurface } from "@lib/utils/graphSurface";
+import { SurfaceMode, SurfaceGraph, type SurfacePoint } from "@lib/components/graphSurfaceRenderer";
+import { createRandomGaussianSurface, evaluateGaussianSurface, generateGaussianSurfaceMatrix } from "@lib/utils/gaussianSurface";
+import { generateNetworkSurfaceMatrix } from "@lib/utils/networkSurface";
 
 const networkControlsElement = document.getElementById("networkControls") as HTMLDivElement;
 const gaussianControlsElement = document.getElementById("gaussianControls") as HTMLDivElement;
@@ -18,8 +19,11 @@ const zoomSliderElement = document.getElementById("zoom-distance") as HTMLInputE
 
 const network = new Network([2, 4, 1]);
 const randomInput = Array.from({ length: 2 }, () => Math.random());
-const gaussianInput: [number, number] = [0, 0];
+const gaussianInput: SurfacePoint = { x: 0, y: 0, z: 0 };
 const gaussianSurface = createRandomGaussianSurface();
+const networkSurfaceRange: [number, number] = [-10, 10];
+const gaussianSurfaceRange: [number, number] = [-10, 10];
+const surfaceStep = 0.2;
 
 let surfaceMode: SurfaceMode = SurfaceMode.Gaussian;
 
@@ -36,7 +40,7 @@ function createDistinctParameterIndices(totalParameters: number): [number, numbe
 
 let selectedParameterIndices: [number, number] = createDistinctParameterIndices(network.weights.length + network.biases.length);
 
-const graph = new NetworkSurfaceGraph({
+const graph = new SurfaceGraph({
     container: document.body,
     initialRotationY: 0,
     initialCameraDistance: 10,
@@ -90,10 +94,10 @@ zoomSliderElement.addEventListener("input", () => {
 });
 
 function syncGaussianInputFromSliders(): void {
-    gaussianInput[0] = parseFloat(gaussianXSliderElement.value);
-    gaussianInput[1] = parseFloat(gaussianYSliderElement.value);
-    gaussianXValueElement.textContent = MathExtra.formatNumber(gaussianInput[0], 5, 9);
-    gaussianYValueElement.textContent = MathExtra.formatNumber(gaussianInput[1], 5, 9);
+    gaussianInput.x = parseFloat(gaussianXSliderElement.value);
+    gaussianInput.y = parseFloat(gaussianYSliderElement.value);
+    gaussianXValueElement.textContent = MathExtra.formatNumber(gaussianInput.x, 5, 9);
+    gaussianYValueElement.textContent = MathExtra.formatNumber(gaussianInput.y, 5, 9);
 }
 
 gaussianXSliderElement.addEventListener("input", () => {
@@ -112,29 +116,26 @@ function updateScore() {
         network.biases = controls.getBiases();
         const output = network.predict(randomInput);
         scoreElement.textContent = `Score: ${MathExtra.formatNumber(output * 10000, 0, 6)}`;
-        graph.render({
-            kind: SurfaceMode.Network,
-            network,
-            randomInput,
-            selectedParameterIndices,
-        });
+        const vertices = generateNetworkSurfaceMatrix(network, randomInput, selectedParameterIndices, networkSurfaceRange, surfaceStep);
+        const currentPoint: SurfacePoint = {
+            x: [...network.weights, ...network.biases][selectedParameterIndices[0]]!,
+            y: [...network.weights, ...network.biases][selectedParameterIndices[1]]!,
+            z: output,
+        };
+        graph.render({ vertices, currentPoint, range: networkSurfaceRange, step: surfaceStep });
         return;
     }
 
-    const output = gaussianSurface.reduce((sum, bump) => {
-        const dx = gaussianInput[0] - bump.centerX;
-        const dy = gaussianInput[1] - bump.centerY;
-        const distanceSquared = dx * dx + dy * dy;
-        const sigmaSquared = bump.sigma * bump.sigma;
-        return sum + bump.amplitude * Math.exp(-distanceSquared / (2 * sigmaSquared));
-    }, 0);
+    const vertices = generateGaussianSurfaceMatrix(gaussianSurface, gaussianSurfaceRange, surfaceStep);
+    const output = evaluateGaussianSurface(gaussianInput.x, gaussianInput.y, gaussianSurface);
+    const currentPoint: SurfacePoint = {
+        x: gaussianInput.x,
+        y: gaussianInput.y,
+        z: output,
+    };
 
     scoreElement.textContent = `Score: ${MathExtra.formatNumber(output * 1000, 0, 6)}`;
-    graph.render({
-        kind: SurfaceMode.Gaussian,
-        input: gaussianInput,
-        bumps: gaussianSurface,
-    });
+    graph.render({ vertices, currentPoint, range: gaussianSurfaceRange, step: surfaceStep });
 }
 
 syncGaussianInputFromSliders();

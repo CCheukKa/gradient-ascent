@@ -1,38 +1,37 @@
-import { Network } from "@lib/components/neuralNetwork";
 import * as THREE from "three";
-import {
-    evaluateGaussianSurface,
-    generateGaussianSurfaceMatrix,
-    generateOutputScoreMatrix,
-    getHeightColor,
-    type GaussianBump,
-} from "@lib/utils/graphSurface";
+import { getHeightColor, type Vertex } from "@lib/utils/graphSurface";
 
 export enum SurfaceMode {
     Network = "network",
     Gaussian = "gaussian"
 }
 
-export type SurfaceRenderMode =
-    | {
-        kind: SurfaceMode.Network;
-        network: Network;
-        randomInput: number[];
-        selectedParameterIndices: [number, number];
-    }
-    | {
-        kind: SurfaceMode.Gaussian;
-        input: [number, number];
-        bumps: GaussianBump[];
-    };
+export interface SurfacePoint {
+    x: number;
+    y: number;
+    z: number;
+}
 
-export interface NetworkSurfaceGraphOptions {
+export interface SurfaceGeometryOptions {
+    vertices: Vertex[];
+    range: [number, number];
+    step: number;
+}
+
+export interface SurfaceRenderOptions {
+    vertices: Vertex[];
+    currentPoint: SurfacePoint;
+    range: [number, number];
+    step: number;
+}
+
+export interface SurfaceGraphOptions {
     container: HTMLElement;
     initialRotationY?: number;
     initialCameraDistance?: number;
 }
 
-export class NetworkSurfaceGraph {
+export class SurfaceGraph {
     private readonly scene: THREE.Scene;
     private readonly camera: THREE.PerspectiveCamera;
     private readonly renderer: THREE.WebGLRenderer;
@@ -51,7 +50,7 @@ export class NetworkSurfaceGraph {
     private graphRotationY: number;
     private cameraDistance: number;
 
-    constructor(options: NetworkSurfaceGraphOptions) {
+    constructor(options: SurfaceGraphOptions) {
         this.graphRotationY = options.initialRotationY ?? 0;
         this.cameraDistance = options.initialCameraDistance ?? 10;
 
@@ -109,33 +108,27 @@ export class NetworkSurfaceGraph {
         this.renderScene();
     }
 
-    public render(options: SurfaceRenderMode): void {
-        const isNetworkMode = options.kind === SurfaceMode.Network;
-        const range: [number, number] = isNetworkMode ? [-10, 10] : [-6, 6];
-        const step = 0.2;
-        const vertices = isNetworkMode
-            ? generateOutputScoreMatrix(options.network, options.randomInput, options.selectedParameterIndices, range, step)
-            : generateGaussianSurfaceMatrix(options.bumps, range, step);
-        const numSteps = Math.floor((range[1] - range[0]) / step) + 1;
-        const positions = new Float32Array(vertices.length * 3);
-        const colors = new Float32Array(vertices.length * 3);
+    public render(options: SurfaceRenderOptions): void {
+        const numSteps = Math.floor((options.range[1] - options.range[0]) / options.step) + 1;
+        const positions = new Float32Array(options.vertices.length * 3);
+        const colors = new Float32Array(options.vertices.length * 3);
         const indices: number[] = [];
         const linePositions: number[] = [];
         let minZ = Number.POSITIVE_INFINITY;
         let maxZ = Number.NEGATIVE_INFINITY;
 
-        for (let i = 0; i < vertices.length; i++) {
-            minZ = Math.min(minZ, vertices[i]!.z);
-            maxZ = Math.max(maxZ, vertices[i]!.z);
+        for (let i = 0; i < options.vertices.length; i++) {
+            minZ = Math.min(minZ, options.vertices[i]!.z);
+            maxZ = Math.max(maxZ, options.vertices[i]!.z);
 
-            positions[i * 3 + 0] = vertices[i]!.x;
-            positions[i * 3 + 1] = vertices[i]!.z;
-            positions[i * 3 + 2] = vertices[i]!.y;
+            positions[i * 3 + 0] = options.vertices[i]!.x;
+            positions[i * 3 + 1] = options.vertices[i]!.z;
+            positions[i * 3 + 2] = options.vertices[i]!.y;
         }
 
         const zRange = Math.max(maxZ - minZ, 0.0001);
-        for (let i = 0; i < vertices.length; i++) {
-            const normalizedZ = (vertices[i]!.z - minZ) / zRange;
+        for (let i = 0; i < options.vertices.length; i++) {
+            const normalizedZ = (options.vertices[i]!.z - minZ) / zRange;
             const vertexColor = getHeightColor(normalizedZ);
             colors[i * 3 + 0] = vertexColor.r;
             colors[i * 3 + 1] = vertexColor.g;
@@ -207,9 +200,6 @@ export class NetworkSurfaceGraph {
         gridGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(linePositions), 3));
         const graphGridLines = new THREE.LineSegments(gridGeometry, this.graphLineMaterial);
 
-        const currentOutput = isNetworkMode
-            ? options.network.predict(options.randomInput)
-            : evaluateGaussianSurface(options.input[0], options.input[1], options.bumps);
         const currentPointSphere = new THREE.Mesh(new THREE.SphereGeometry(this.currentPointBaseRadius, 18, 18), this.currentPointMaterial);
         const currentPointStem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.28, 14), this.currentPointMaterial);
         currentPointStem.position.y = this.currentPointBaseRadius + 0.14;
@@ -224,18 +214,7 @@ export class NetworkSurfaceGraph {
         this.currentPointVisual.add(currentPointHead);
 
         this.currentPointAnchor = new THREE.Group();
-        if (isNetworkMode) {
-            const currentWeights = options.network.weights;
-            const currentBiases = options.network.biases;
-            const currentParameters = [...currentWeights, ...currentBiases];
-            this.currentPointAnchor.position.set(
-                currentParameters[options.selectedParameterIndices[0]]!,
-                currentOutput,
-                currentParameters[options.selectedParameterIndices[1]]!,
-            );
-        } else {
-            this.currentPointAnchor.position.set(options.input[0], currentOutput, options.input[1]);
-        }
+        this.currentPointAnchor.position.set(options.currentPoint.x, options.currentPoint.z, options.currentPoint.y);
         this.currentPointAnchor.add(this.currentPointVisual);
 
         this.graphGroup = new THREE.Group();
