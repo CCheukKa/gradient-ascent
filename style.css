@@ -36,6 +36,7 @@ body {
     color: #ffffff20;
     font-weight: normal;
     padding: 5px 10px;
+    z-index: 99999;
 }
 
 #controlsContainer {
