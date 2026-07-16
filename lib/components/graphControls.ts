@@ -4,15 +4,18 @@ export interface WeightAxisControlsOptions {
     container: HTMLElement;
     template: HTMLTemplateElement;
     weights: number[];
-    initialSelectedWeightIndices?: [number, number];
+    biases: number[];
+    initialSelectedParameterIndices?: [number, number];
     onWeightsChanged: (weights: number[]) => void;
-    onSelectedWeightIndicesChanged: (indices: [number, number]) => void;
+    onBiasesChanged: (biases: number[]) => void;
+    onSelectedParameterIndicesChanged: (indices: [number, number]) => void;
 }
 
 export interface WeightAxisControls {
     sliders: HTMLInputElement[];
     getWeights: () => number[];
-    getSelectedWeightIndices: () => [number, number];
+    getBiases: () => number[];
+    getSelectedParameterIndices: () => [number, number];
 }
 
 export interface RangeSliderOptions {
@@ -55,31 +58,39 @@ export function createRangeSlider(options: RangeSliderOptions): HTMLInputElement
 export function createWeightAxisControls(options: WeightAxisControlsOptions): WeightAxisControls {
     const sliders: HTMLInputElement[] = [];
     const axisCheckboxes: HTMLInputElement[] = [];
-    let selectedWeightIndices: [number, number] = options.initialSelectedWeightIndices ?? [0, 1];
+    let selectedParameterIndices: [number, number] = options.initialSelectedParameterIndices ?? [0, 1];
+    const totalWeights = options.weights.length;
+    const totalParameters = totalWeights + options.biases.length;
 
-    for (let i = 0; i < options.weights.length; i++) {
+    const parameters = [
+        ...options.weights.map((value, index) => ({ kind: "weight" as const, index, value })),
+        ...options.biases.map((value, index) => ({ kind: "bias" as const, index, value })),
+    ];
+
+    for (let i = 0; i < parameters.length; i++) {
+        const parameter = parameters[i]!;
         const sliderClone = options.template.content.cloneNode(true) as DocumentFragment;
         const sliderLabel = sliderClone.querySelector("label") as HTMLLabelElement;
         const sliderInput = sliderClone.querySelector("input") as HTMLInputElement;
         const sliderValueDisplay = sliderClone.querySelector("#value") as HTMLSpanElement | null;
 
-        sliderInput.id = `weight-${i}`;
-        sliderInput.name = `weight-${i}`;
-        sliderInput.value = options.weights[i]!.toString();
+        sliderInput.id = `${parameter.kind}-${parameter.index}`;
+        sliderInput.name = `${parameter.kind}-${parameter.index}`;
+        sliderInput.value = parameter.value.toString();
 
-        sliderLabel.textContent = `Weight ${i}`;
+        sliderLabel.textContent = `${parameter.kind === "weight" ? "Weight" : "Bias"} ${parameter.index}`;
 
         const axisCheckbox = document.createElement("input");
         axisCheckbox.type = "checkbox";
-        axisCheckbox.checked = selectedWeightIndices.includes(i);
+        axisCheckbox.checked = selectedParameterIndices.includes(i);
         axisCheckbox.style.marginLeft = "8px";
         axisCheckbox.title = "Use as graph axis";
-        axisCheckbox.ariaLabel = `Use weight ${i} as graph axis`;
+        axisCheckbox.ariaLabel = `Use ${sliderLabel.textContent} as graph axis`;
 
         axisCheckbox.addEventListener("change", () => {
-            selectedWeightIndices = getNextSelectedWeightIndices(selectedWeightIndices, i, axisCheckbox.checked, options.weights.length);
-            applyAxisCheckboxState(axisCheckboxes, selectedWeightIndices);
-            options.onSelectedWeightIndicesChanged(selectedWeightIndices);
+            selectedParameterIndices = getNextSelectedParameterIndices(selectedParameterIndices, i, axisCheckbox.checked, totalParameters);
+            applyAxisCheckboxState(axisCheckboxes, selectedParameterIndices);
+            options.onSelectedParameterIndicesChanged(selectedParameterIndices);
         });
 
         axisCheckboxes.push(axisCheckbox);
@@ -89,7 +100,11 @@ export function createWeightAxisControls(options: WeightAxisControlsOptions): We
             if (sliderValueDisplay) {
                 sliderValueDisplay.textContent = MathExtra.formatNumber(parseFloat(sliderInput.value), 5, 9);
             }
-            options.onWeightsChanged(sliders.map(slider => parseFloat(slider.value)));
+            if (parameter.kind === "weight") {
+                options.onWeightsChanged(sliders.slice(0, totalWeights).map(slider => parseFloat(slider.value)));
+            } else {
+                options.onBiasesChanged(sliders.slice(totalWeights).map(slider => parseFloat(slider.value)));
+            }
         });
 
         if (sliderValueDisplay) {
@@ -101,29 +116,30 @@ export function createWeightAxisControls(options: WeightAxisControlsOptions): We
     }
 
     function syncAxisCheckboxes(): void {
-        applyAxisCheckboxState(axisCheckboxes, selectedWeightIndices);
+        applyAxisCheckboxState(axisCheckboxes, selectedParameterIndices);
     }
 
     syncAxisCheckboxes();
 
     return {
         sliders,
-        getWeights: () => sliders.map(slider => parseFloat(slider.value)),
-        getSelectedWeightIndices: () => selectedWeightIndices,
+        getWeights: () => sliders.slice(0, totalWeights).map(slider => parseFloat(slider.value)),
+        getBiases: () => sliders.slice(totalWeights).map(slider => parseFloat(slider.value)),
+        getSelectedParameterIndices: () => selectedParameterIndices,
     };
 }
 
-function applyAxisCheckboxState(axisCheckboxes: HTMLInputElement[], selectedWeightIndices: [number, number]) {
+function applyAxisCheckboxState(axisCheckboxes: HTMLInputElement[], selectedParameterIndices: [number, number]) {
     for (let i = 0; i < axisCheckboxes.length; i++) {
-        axisCheckboxes[i]!.checked = selectedWeightIndices.includes(i);
+        axisCheckboxes[i]!.checked = selectedParameterIndices.includes(i);
     }
 }
 
-function getNextSelectedWeightIndices(
+function getNextSelectedParameterIndices(
     currentSelection: [number, number],
     changedIndex: number,
     isChecked: boolean,
-    totalWeights: number,
+    totalParameters: number,
 ): [number, number] {
     const nextSelection = currentSelection.filter(index => index !== changedIndex);
 
@@ -135,7 +151,7 @@ function getNextSelectedWeightIndices(
     }
 
     while (nextSelection.length < 2) {
-        const fallbackIndex = Array.from({ length: totalWeights }, (_, index) => index).find(index => !nextSelection.includes(index));
+        const fallbackIndex = Array.from({ length: totalParameters }, (_, index) => index).find(index => !nextSelection.includes(index));
         if (fallbackIndex === undefined) {
             break;
         }

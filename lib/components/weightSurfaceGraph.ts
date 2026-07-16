@@ -85,10 +85,10 @@ export class WeightSurfaceGraph {
         this.renderScene();
     }
 
-    public render(network: Network, randomInput: number[], selectedWeightIndices: [number, number]): void {
+    public render(network: Network, randomInput: number[], selectedParameterIndices: [number, number]): void {
         const range: [number, number] = [-10, 10];
         const step = 0.2;
-        const vertices = generateOutputScoreMatrix(network, randomInput, selectedWeightIndices, range, step);
+        const vertices = generateOutputScoreMatrix(network, randomInput, selectedParameterIndices, range, step);
         const numSteps = Math.floor((range[1] - range[0]) / step) + 1;
         const positions = new Float32Array(vertices.length * 3);
         const colors = new Float32Array(vertices.length * 3);
@@ -181,6 +181,8 @@ export class WeightSurfaceGraph {
         const graphGridLines = new THREE.LineSegments(gridGeometry, this.graphLineMaterial);
 
         const currentWeights = network.weights;
+        const currentBiases = network.biases;
+        const currentParameters = [...currentWeights, ...currentBiases];
         const currentOutput = network.predict(randomInput);
         const currentPointSphere = new THREE.Mesh(new THREE.SphereGeometry(this.currentPointBaseRadius, 18, 18), this.currentPointMaterial);
         const currentPointStem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.28, 14), this.currentPointMaterial);
@@ -196,7 +198,7 @@ export class WeightSurfaceGraph {
         this.currentPointVisual.add(currentPointHead);
 
         this.currentPointAnchor = new THREE.Group();
-        this.currentPointAnchor.position.set(currentWeights[selectedWeightIndices[0]]!, currentOutput, currentWeights[selectedWeightIndices[1]]!);
+        this.currentPointAnchor.position.set(currentParameters[selectedParameterIndices[0]]!, currentOutput, currentParameters[selectedParameterIndices[1]]!);
         this.currentPointAnchor.add(this.currentPointVisual);
 
         this.graphGroup = new THREE.Group();

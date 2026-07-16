@@ -9,21 +9,21 @@ const sliderTemplateElement = document.getElementById("sliderTemplate") as HTMLT
 const rotationSliderElement = document.getElementById("rotation-y") as HTMLInputElement;
 const zoomSliderElement = document.getElementById("zoom-distance") as HTMLInputElement;
 
-const network = new Network([2, 4, 2, 1]);
+const network = new Network([2, 4, 1]);
 const randomInput = Array.from({ length: 2 }, () => Math.random());
 
-function createDistinctWeightIndices(totalWeights: number): [number, number] {
-    const firstIndex = Math.floor(Math.random() * totalWeights);
+function createDistinctParameterIndices(totalParameters: number): [number, number] {
+    const firstIndex = Math.floor(Math.random() * totalParameters);
     let secondIndex: number;
 
     do {
-        secondIndex = Math.floor(Math.random() * totalWeights);
+        secondIndex = Math.floor(Math.random() * totalParameters);
     } while (secondIndex === firstIndex);
 
     return [firstIndex, secondIndex];
 }
 
-let selectedWeightIndices: [number, number] = createDistinctWeightIndices(network.weights.length);
+let selectedParameterIndices: [number, number] = createDistinctParameterIndices(network.weights.length + network.biases.length);
 
 const graph = new WeightSurfaceGraph({
     container: document.body,
@@ -35,13 +35,18 @@ const controls = createWeightAxisControls({
     container: mainContainerElement,
     template: sliderTemplateElement,
     weights: network.weights,
-    initialSelectedWeightIndices: selectedWeightIndices,
+    biases: network.biases,
+    initialSelectedParameterIndices: selectedParameterIndices,
     onWeightsChanged: weights => {
         network.weights = weights;
         updateScore();
     },
-    onSelectedWeightIndicesChanged: indices => {
-        selectedWeightIndices = indices;
+    onBiasesChanged: biases => {
+        network.biases = biases;
+        updateScore();
+    },
+    onSelectedParameterIndicesChanged: indices => {
+        selectedParameterIndices = indices;
         updateScore();
     },
 });
@@ -56,9 +61,10 @@ zoomSliderElement.addEventListener("input", () => {
 
 function updateScore() {
     network.weights = controls.getWeights();
+    network.biases = controls.getBiases();
     const output = network.predict(randomInput);
     scoreElement.textContent = `Score: ${MathExtra.formatNumber(output * 10000, 0, 6)}`;
-    graph.render(network, randomInput, selectedWeightIndices);
+    graph.render(network, randomInput, selectedParameterIndices);
 }
 
 updateScore();
