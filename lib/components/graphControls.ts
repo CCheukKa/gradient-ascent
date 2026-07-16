@@ -96,7 +96,7 @@ export function createWeightAxisControls(options: WeightAxisControlsOptions): We
             sliderValueDisplay.textContent = MathExtra.formatNumber(parseFloat(sliderInput.value), 5, 9);
         }
 
-        options.container.appendChild(sliderClone);
+        options.container.insertBefore(sliderClone, options.template);
         sliders.push(sliderInput);
     }
 

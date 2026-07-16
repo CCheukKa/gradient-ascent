@@ -1,11 +1,13 @@
 import { Network } from "@lib/components/neuralNetwork";
 import { MathExtra } from "@lib/utils/mathExtra";
-import { createRangeSlider, createWeightAxisControls } from "@lib/components/graphControls";
+import { createWeightAxisControls } from "@lib/components/graphControls";
 import { WeightSurfaceGraph } from "@lib/components/weightSurfaceGraph";
 
 const mainContainerElement = document.getElementById("mainContainer") as HTMLDivElement;
 const scoreElement = document.getElementById("score") as HTMLDivElement;
 const sliderTemplateElement = document.getElementById("sliderTemplate") as HTMLTemplateElement;
+const rotationSliderElement = document.getElementById("rotation-y") as HTMLInputElement;
+const zoomSliderElement = document.getElementById("zoom-distance") as HTMLInputElement;
 
 const network = new Network([2, 4, 2, 1]);
 const randomInput = Array.from({ length: 2 }, () => Math.random());
@@ -44,26 +46,12 @@ const controls = createWeightAxisControls({
     },
 });
 
-createRangeSlider({
-    container: mainContainerElement,
-    label: "Rotate:",
-    id: "rotation-y",
-    min: -180,
-    max: 180,
-    step: 1,
-    value: 0,
-    onInput: value => graph.setRotationY((value * Math.PI) / 180),
+rotationSliderElement.addEventListener("input", () => {
+    graph.setRotationY((parseFloat(rotationSliderElement.value) * Math.PI) / 180);
 });
 
-createRangeSlider({
-    container: mainContainerElement,
-    label: "Zoom:",
-    id: "zoom-distance",
-    min: 10,
-    max: 20,
-    step: 0.01,
-    value: 10,
-    onInput: value => graph.setCameraDistance(value),
+zoomSliderElement.addEventListener("input", () => {
+    graph.setCameraDistance(parseFloat(zoomSliderElement.value));
 });
 
 function updateScore() {
