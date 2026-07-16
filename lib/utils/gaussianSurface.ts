@@ -8,7 +8,7 @@ interface GaussianBump {
 }
 
 export function createRandomGaussianSurface(): GaussianBump[] {
-    return Array.from({ length: 50 }, () => ({
+    return Array.from({ length: 80 }, () => ({
         centerX: Math.random() * 24 - 10,
         centerY: Math.random() * 24 - 10,
         amplitude: Math.random() * 5 - 2,
