@@ -29,26 +29,84 @@ const mainContainerElement = document.getElementById("mainContainer") as HTMLDiv
 const scoreElement = document.getElementById("score") as HTMLDivElement;
 const sliderTemplateElement = document.getElementById("sliderTemplate") as HTMLTemplateElement;
 
-const layerSizes = [1, 1, 1];
+const layerSizes = [2, 4, 2, 1];
 const network = new Network(layerSizes);
 const randomInput = Array.from({ length: layerSizes[0]! }, () => Math.random());
 const weightsLength = network.weights.length;
 
 const sliders: HTMLInputElement[] = [];
+const axisCheckboxes: HTMLInputElement[] = [];
+
+// randomly choose two distinct weight indices to be selected initially
+let selectedWeightIndices: [number, number] = (() => {
+    const firstIndex = Math.floor(Math.random() * weightsLength);
+    let secondIndex: number;
+    do {
+        secondIndex = Math.floor(Math.random() * weightsLength);
+    } while (secondIndex === firstIndex);
+    return [firstIndex, secondIndex];
+})();
+
 let graphRotationY = 0;
 let cameraDistance = 10;
 const cameraDirection = new THREE.Vector3(1, 1, 1).normalize();
 
 for (let i = 0; i < weightsLength; i++) {
     const sliderClone = sliderTemplateElement.content.cloneNode(true) as DocumentFragment;
+    const sliderLabel = sliderClone.querySelector("label") as HTMLLabelElement;
     const sliderInput = sliderClone.querySelector("input") as HTMLInputElement;
     sliderInput.id = `weight-${i}`;
     sliderInput.name = `weight-${i}`;
     sliderInput.value = network.weights[i]!.toString();
+
+    sliderLabel.textContent = `Weight ${i}`;
+    const axisCheckbox = document.createElement("input");
+    axisCheckbox.type = "checkbox";
+    axisCheckbox.checked = selectedWeightIndices.includes(i);
+    axisCheckbox.style.marginLeft = "8px";
+    axisCheckbox.title = "Use as graph axis";
+    axisCheckbox.ariaLabel = `Use weight ${i} as graph axis`;
+
+    axisCheckbox.addEventListener("change", () => {
+        selectedWeightIndices = getNextSelectedWeightIndices(i, axisCheckbox.checked);
+        syncAxisCheckboxes();
+        renderOutputScoreGraph();
+    });
+
+    axisCheckboxes.push(axisCheckbox);
+    sliderLabel.appendChild(axisCheckbox);
+
     mainContainerElement.appendChild(sliderClone);
     sliders.push(sliderInput);
 
     sliderInput.addEventListener("input", updateScore);
+}
+
+function syncAxisCheckboxes() {
+    for (let i = 0; i < axisCheckboxes.length; i++) {
+        axisCheckboxes[i]!.checked = selectedWeightIndices.includes(i);
+    }
+}
+
+function getNextSelectedWeightIndices(changedIndex: number, isChecked: boolean): [number, number] {
+    const nextSelection = selectedWeightIndices.filter(index => index !== changedIndex);
+
+    if (isChecked) {
+        if (nextSelection.length >= 2) {
+            nextSelection.shift();
+        }
+        nextSelection.push(changedIndex);
+    }
+
+    while (nextSelection.length < 2) {
+        const fallbackIndex = Array.from({ length: weightsLength }, (_, index) => index).find(index => !nextSelection.includes(index));
+        if (fallbackIndex === undefined) {
+            break;
+        }
+        nextSelection.push(fallbackIndex);
+    }
+
+    return [nextSelection[0]!, nextSelection[1] ?? nextSelection[0]!];
 }
 
 const rotationSliderWrapper = document.createElement("div");
@@ -86,15 +144,15 @@ const zoomSlider = document.createElement("input");
 zoomSlider.type = "range";
 zoomSlider.id = "zoom-distance";
 zoomSlider.name = "zoom-distance";
-zoomSlider.min = "1.5";
-zoomSlider.max = "8";
+zoomSlider.min = "10";
+zoomSlider.max = "20";
 zoomSlider.step = "0.01";
 zoomSlider.value = cameraDistance.toString();
 
 zoomSlider.addEventListener("input", () => {
     cameraDistance = parseFloat(zoomSlider.value);
     updateCameraPosition();
-    renderer.render(scene, camera);
+    renderOutputScoreGraph();
 });
 
 zoomSliderWrapper.append(zoomLabel, zoomSlider);
@@ -115,15 +173,15 @@ function updateScore() {
 function generateOutputScoreMatrix(network: Network, range: [number, number], step: number): Vertex[] {
     const outputScoreMatrix: Vertex[] = [];
     const numSteps = Math.floor((range[1] - range[0]) / step) + 1;
-    const currentWeights = network.weights;
+    const currentWeights = network.weights.slice();
     for (let i = 0; i < numSteps; i++) {
         for (let j = 0; j < numSteps; j++) {
             const weights = currentWeights.slice();
-            weights[0] = range[0]! + i * step;
-            weights[1] = range[0]! + j * step;
+            weights[selectedWeightIndices[0]] = range[0]! + i * step;
+            weights[selectedWeightIndices[1]] = range[0]! + j * step;
             network.weights = weights;
             const output = network.predict(randomInput);
-            outputScoreMatrix.push(new Vertex(weights[0]!, weights[1]!, output));
+            outputScoreMatrix.push(new Vertex(weights[selectedWeightIndices[0]]!, weights[selectedWeightIndices[1]]!, output * 2));
         }
     }
     network.weights = currentWeights;
@@ -167,15 +225,31 @@ const graphLineMaterial = new THREE.LineBasicMaterial({
 
 let graphMesh: THREE.Mesh | null = null;
 let graphGridLines: THREE.LineSegments | null = null;
-let currentPoint: THREE.Mesh | null = null;
+let currentPointAnchor: THREE.Group | null = null;
+let currentPointVisual: THREE.Group | null = null;
 let graphGroup: THREE.Group | null = null;
+const currentPointBaseRadius = 0.035;
+const currentPointScreenRadius = 5;
+const currentPointWorldPosition = new THREE.Vector3();
 const currentPointMaterial = new THREE.MeshBasicMaterial({
     color: 0xff3b3b,
 });
 
+function updateCurrentPointScreenSize() {
+    if (!currentPointAnchor || !currentPointVisual) {
+        return;
+    }
+
+    currentPointAnchor.getWorldPosition(currentPointWorldPosition);
+    const distance = camera.position.distanceTo(currentPointWorldPosition);
+    const viewportHeight = renderer.getSize(new THREE.Vector2()).height;
+    const worldRadius = (currentPointScreenRadius * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 2) / viewportHeight;
+    currentPointVisual.scale.setScalar(worldRadius / currentPointBaseRadius);
+}
+
 function renderOutputScoreGraph() {
     const range: [number, number] = [-10, 10];
-    const step = 0.5;
+    const step = 0.2;
     const vertices = generateOutputScoreMatrix(network, range, step);
     const numSteps = Math.floor((range[1] - range[0]) / step) + 1;
     const positions = new Float32Array(vertices.length * 3);
@@ -272,17 +346,37 @@ function renderOutputScoreGraph() {
 
     const currentWeights = network.weights;
     const currentOutput = network.predict(randomInput);
-    const currentPointGeometry = new THREE.SphereGeometry(0.035, 18, 18);
+    const currentPointSphere = new THREE.Mesh(new THREE.SphereGeometry(currentPointBaseRadius, 18, 18), currentPointMaterial);
+    const currentPointStem = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.01, 0.01, 0.28, 14),
+        currentPointMaterial,
+    );
+    currentPointStem.position.y = currentPointBaseRadius + 0.14;
 
-    currentPoint = new THREE.Mesh(currentPointGeometry, currentPointMaterial);
-    currentPoint.position.set(currentWeights[0]!, currentOutput, currentWeights[1]!);
+    const currentPointHead = new THREE.Mesh(
+        new THREE.ConeGeometry(0.04, 0.16, 14),
+        currentPointMaterial,
+    );
+    currentPointHead.rotation.x = Math.PI;
+    currentPointHead.position.y = currentPointBaseRadius + 0.36;
+
+    currentPointVisual = new THREE.Group();
+    currentPointVisual.add(currentPointSphere);
+    currentPointVisual.add(currentPointStem);
+    currentPointVisual.add(currentPointHead);
+
+    currentPointAnchor = new THREE.Group();
+    currentPointAnchor.position.set(currentWeights[selectedWeightIndices[0]]!, currentOutput, currentWeights[selectedWeightIndices[1]]!);
+    currentPointAnchor.add(currentPointVisual);
 
     graphGroup = new THREE.Group();
     graphGroup.rotation.y = graphRotationY;
     graphGroup.add(graphMesh);
     graphGroup.add(graphGridLines);
-    graphGroup.add(currentPoint);
+    graphGroup.add(currentPointAnchor);
     scene.add(graphGroup);
+
+    updateCurrentPointScreenSize();
 
     renderer.render(scene, camera);
 }
