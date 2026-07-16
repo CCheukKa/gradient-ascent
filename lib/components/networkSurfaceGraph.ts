@@ -1,14 +1,38 @@
 import { Network } from "@lib/components/neuralNetwork";
 import * as THREE from "three";
-import { generateOutputScoreMatrix, getHeightColor } from "@lib/utils/graphSurface";
+import {
+    evaluateGaussianSurface,
+    generateGaussianSurfaceMatrix,
+    generateOutputScoreMatrix,
+    getHeightColor,
+    type GaussianBump,
+} from "@lib/utils/graphSurface";
 
-export interface WeightSurfaceGraphOptions {
+export enum SurfaceMode {
+    Network = "network",
+    Gaussian = "gaussian"
+}
+
+export type SurfaceRenderMode =
+    | {
+        kind: SurfaceMode.Network;
+        network: Network;
+        randomInput: number[];
+        selectedParameterIndices: [number, number];
+    }
+    | {
+        kind: SurfaceMode.Gaussian;
+        input: [number, number];
+        bumps: GaussianBump[];
+    };
+
+export interface NetworkSurfaceGraphOptions {
     container: HTMLElement;
     initialRotationY?: number;
     initialCameraDistance?: number;
 }
 
-export class WeightSurfaceGraph {
+export class NetworkSurfaceGraph {
     private readonly scene: THREE.Scene;
     private readonly camera: THREE.PerspectiveCamera;
     private readonly renderer: THREE.WebGLRenderer;
@@ -27,7 +51,7 @@ export class WeightSurfaceGraph {
     private graphRotationY: number;
     private cameraDistance: number;
 
-    constructor(options: WeightSurfaceGraphOptions) {
+    constructor(options: NetworkSurfaceGraphOptions) {
         this.graphRotationY = options.initialRotationY ?? 0;
         this.cameraDistance = options.initialCameraDistance ?? 10;
 
@@ -85,10 +109,13 @@ export class WeightSurfaceGraph {
         this.renderScene();
     }
 
-    public render(network: Network, randomInput: number[], selectedParameterIndices: [number, number]): void {
-        const range: [number, number] = [-10, 10];
+    public render(options: SurfaceRenderMode): void {
+        const isNetworkMode = options.kind === SurfaceMode.Network;
+        const range: [number, number] = isNetworkMode ? [-10, 10] : [-6, 6];
         const step = 0.2;
-        const vertices = generateOutputScoreMatrix(network, randomInput, selectedParameterIndices, range, step);
+        const vertices = isNetworkMode
+            ? generateOutputScoreMatrix(options.network, options.randomInput, options.selectedParameterIndices, range, step)
+            : generateGaussianSurfaceMatrix(options.bumps, range, step);
         const numSteps = Math.floor((range[1] - range[0]) / step) + 1;
         const positions = new Float32Array(vertices.length * 3);
         const colors = new Float32Array(vertices.length * 3);
@@ -180,10 +207,9 @@ export class WeightSurfaceGraph {
         gridGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(linePositions), 3));
         const graphGridLines = new THREE.LineSegments(gridGeometry, this.graphLineMaterial);
 
-        const currentWeights = network.weights;
-        const currentBiases = network.biases;
-        const currentParameters = [...currentWeights, ...currentBiases];
-        const currentOutput = network.predict(randomInput);
+        const currentOutput = isNetworkMode
+            ? options.network.predict(options.randomInput)
+            : evaluateGaussianSurface(options.input[0], options.input[1], options.bumps);
         const currentPointSphere = new THREE.Mesh(new THREE.SphereGeometry(this.currentPointBaseRadius, 18, 18), this.currentPointMaterial);
         const currentPointStem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.28, 14), this.currentPointMaterial);
         currentPointStem.position.y = this.currentPointBaseRadius + 0.14;
@@ -198,7 +224,18 @@ export class WeightSurfaceGraph {
         this.currentPointVisual.add(currentPointHead);
 
         this.currentPointAnchor = new THREE.Group();
-        this.currentPointAnchor.position.set(currentParameters[selectedParameterIndices[0]]!, currentOutput, currentParameters[selectedParameterIndices[1]]!);
+        if (isNetworkMode) {
+            const currentWeights = options.network.weights;
+            const currentBiases = options.network.biases;
+            const currentParameters = [...currentWeights, ...currentBiases];
+            this.currentPointAnchor.position.set(
+                currentParameters[options.selectedParameterIndices[0]]!,
+                currentOutput,
+                currentParameters[options.selectedParameterIndices[1]]!,
+            );
+        } else {
+            this.currentPointAnchor.position.set(options.input[0], currentOutput, options.input[1]);
+        }
         this.currentPointAnchor.add(this.currentPointVisual);
 
         this.graphGroup = new THREE.Group();

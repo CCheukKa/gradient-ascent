@@ -2,7 +2,6 @@
     box-sizing: border-box;
     user-select: none;
     transition: all 0.2s ease-in-out;
-    white-space: pre-wrap;
 }
 
 html {
@@ -53,6 +52,56 @@ body {
     backdrop-filter: blur(10px);
     max-height: 100%;
 
+    .modeToggle {
+        width: fit-content;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        gap: 0;
+        padding: 2px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+        overflow: hidden;
+
+        .modeToggleButton {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            color: #d8d8d8;
+            font: inherit;
+            font-size: 18px;
+            line-height: 1;
+            padding: 12px 18px;
+            cursor: pointer;
+            min-width: 84px;
+            border-radius: 8px;
+        }
+
+        .modeToggleButton:last-child {
+            border-right: 0;
+        }
+
+        .modeToggleButton:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .modeToggleButton.is-active {
+            background: #6f19ef;
+            color: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+    }
+
+    #networkControls[hidden] {
+        display: none;
+    }
+
+    #gaussianControls[hidden] {
+        display: none;
+    }
+
     .slider {
         display: flex;
         flex-direction: row;
@@ -63,6 +112,10 @@ body {
         input[type="range"] {
             width: 200px;
         }
+    }
+
+    label {
+        white-space: pre-wrap;
     }
 }
 
