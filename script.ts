@@ -29,20 +29,22 @@ const mainContainerElement = document.getElementById("mainContainer") as HTMLDiv
 const scoreElement = document.getElementById("score") as HTMLDivElement;
 const sliderTemplateElement = document.getElementById("sliderTemplate") as HTMLTemplateElement;
 
-const layerSizes = [1, 1];
+const layerSizes = [1, 1, 1];
 const network = new Network(layerSizes);
 const randomInput = Array.from({ length: layerSizes[0]! }, () => Math.random());
-const wbLength = network.weightsAndBiases.length;
+const weightsLength = network.weights.length;
 
 const sliders: HTMLInputElement[] = [];
 let graphRotationY = 0;
+let cameraDistance = 10;
+const cameraDirection = new THREE.Vector3(1, 1, 1).normalize();
 
-for (let i = 0; i < wbLength; i++) {
+for (let i = 0; i < weightsLength; i++) {
     const sliderClone = sliderTemplateElement.content.cloneNode(true) as DocumentFragment;
     const sliderInput = sliderClone.querySelector("input") as HTMLInputElement;
     sliderInput.id = `weight-${i}`;
     sliderInput.name = `weight-${i}`;
-    sliderInput.value = network.weightsAndBiases[i]!.toString();
+    sliderInput.value = network.weights[i]!.toString();
     mainContainerElement.appendChild(sliderClone);
     sliders.push(sliderInput);
 
@@ -73,8 +75,38 @@ rotationSlider.addEventListener("input", () => {
 rotationSliderWrapper.append(rotationLabel, rotationSlider);
 mainContainerElement.appendChild(rotationSliderWrapper);
 
+const zoomSliderWrapper = document.createElement("div");
+zoomSliderWrapper.className = "slider";
+
+const zoomLabel = document.createElement("label");
+zoomLabel.htmlFor = "zoom-distance";
+zoomLabel.textContent = "Zoom:";
+
+const zoomSlider = document.createElement("input");
+zoomSlider.type = "range";
+zoomSlider.id = "zoom-distance";
+zoomSlider.name = "zoom-distance";
+zoomSlider.min = "1.5";
+zoomSlider.max = "8";
+zoomSlider.step = "0.01";
+zoomSlider.value = cameraDistance.toString();
+
+zoomSlider.addEventListener("input", () => {
+    cameraDistance = parseFloat(zoomSlider.value);
+    updateCameraPosition();
+    renderer.render(scene, camera);
+});
+
+zoomSliderWrapper.append(zoomLabel, zoomSlider);
+mainContainerElement.appendChild(zoomSliderWrapper);
+
+function updateCameraPosition() {
+    camera.position.copy(cameraDirection).multiplyScalar(cameraDistance);
+    camera.lookAt(0, 0, 0);
+}
+
 function updateScore() {
-    network.weightsAndBiases = sliders.map(slider => parseFloat(slider.value));
+    network.weights = sliders.map(slider => parseFloat(slider.value));
     const output = network.predict(randomInput);
     scoreElement.textContent = `Score: ${output.toFixed(10)}`;
     renderOutputScoreGraph();
@@ -83,18 +115,18 @@ function updateScore() {
 function generateOutputScoreMatrix(network: Network, range: [number, number], step: number): Vertex[] {
     const outputScoreMatrix: Vertex[] = [];
     const numSteps = Math.floor((range[1] - range[0]) / step) + 1;
-    const currentWeightsAndBiases = network.weightsAndBiases.slice();
+    const currentWeights = network.weights;
     for (let i = 0; i < numSteps; i++) {
         for (let j = 0; j < numSteps; j++) {
-            const weightsAndBiases = currentWeightsAndBiases.slice();
-            weightsAndBiases[0] = range[0]! + i * step;
-            weightsAndBiases[1] = range[0]! + j * step;
-            network.weightsAndBiases = weightsAndBiases;
+            const weights = currentWeights.slice();
+            weights[0] = range[0]! + i * step;
+            weights[1] = range[0]! + j * step;
+            network.weights = weights;
             const output = network.predict(randomInput);
-            outputScoreMatrix.push(new Vertex(weightsAndBiases[0]!, weightsAndBiases[1]!, output));
+            outputScoreMatrix.push(new Vertex(weights[0]!, weights[1]!, output));
         }
     }
-    network.weightsAndBiases = currentWeightsAndBiases;
+    network.weights = currentWeights;
     return outputScoreMatrix;
 }
 
@@ -102,13 +134,12 @@ const scene = new THREE.Scene();
 scene.background = null;
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(1.8, 1.8, 1.8);
-camera.lookAt(0, 0, 0);
+updateCameraPosition();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setClearColor(0x000000, 0);
-const canvasWidth = Math.min(400, Math.floor(window.innerWidth * 0.65));
-const canvasHeight = Math.min(400, Math.floor(window.innerHeight * 0.65));
+const canvasWidth = Math.ceil(window.innerWidth);
+const canvasHeight = Math.ceil(window.innerHeight);
 renderer.setSize(canvasWidth, canvasHeight);
 renderer.domElement.classList.add("three-graph");
 document.body.appendChild(renderer.domElement);
@@ -121,7 +152,7 @@ scene.add(directionalLight);
 const graphMaterial = new THREE.MeshPhongMaterial({
     color: 0xffffff,
     specular: 0xffffff,
-    shininess: 30,
+    shininess: 1,
     transparent: true,
     opacity: 0.9,
     side: THREE.DoubleSide,
@@ -239,12 +270,12 @@ function renderOutputScoreGraph() {
 
     graphGridLines = new THREE.LineSegments(gridGeometry, graphLineMaterial);
 
-    const currentWeightsAndBiases = network.weightsAndBiases;
+    const currentWeights = network.weights;
     const currentOutput = network.predict(randomInput);
     const currentPointGeometry = new THREE.SphereGeometry(0.035, 18, 18);
 
     currentPoint = new THREE.Mesh(currentPointGeometry, currentPointMaterial);
-    currentPoint.position.set(currentWeightsAndBiases[0]!, currentOutput, currentWeightsAndBiases[1]!);
+    currentPoint.position.set(currentWeights[0]!, currentOutput, currentWeights[1]!);
 
     graphGroup = new THREE.Group();
     graphGroup.rotation.y = graphRotationY;

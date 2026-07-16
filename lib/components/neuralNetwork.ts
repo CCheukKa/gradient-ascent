@@ -29,22 +29,39 @@ export class Network {
         });
     }
 
-    get weightsAndBiases(): number[] {
-        const weightsAndBiases: number[] = [];
+    get weights(): number[] {
+        const weights: number[] = [];
         for (const layer of this.layers) {
             for (const node of layer.nodes) {
-                weightsAndBiases.push(...node.weights, node.bias);
+                weights.push(...node.weights);
             }
         }
-        return weightsAndBiases;
+        return weights;
     }
-    set weightsAndBiases(values: number[]) {
+    set weights(values: number[]) {
         let index = 0;
         for (const layer of this.layers) {
             for (const node of layer.nodes) {
                 for (let i = 0; i < node.weights.length; i++) {
                     node.weights[i] = values[index++]!;
                 }
+            }
+        }
+    }
+
+    get biases(): number[] {
+        const biases: number[] = [];
+        for (const layer of this.layers) {
+            for (const node of layer.nodes) {
+                biases.push(node.bias);
+            }
+        }
+        return biases;
+    }
+    set biases(values: number[]) {
+        let index = 0;
+        for (const layer of this.layers) {
+            for (const node of layer.nodes) {
                 node.bias = values[index++]!;
             }
         }
