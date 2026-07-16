@@ -201,12 +201,12 @@ export class SurfaceGraph {
         const graphGridLines = new THREE.LineSegments(gridGeometry, this.graphLineMaterial);
 
         const currentPointSphere = new THREE.Mesh(new THREE.SphereGeometry(this.currentPointBaseRadius, 18, 18), this.currentPointMaterial);
-        const currentPointStem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.28, 14), this.currentPointMaterial);
-        currentPointStem.position.y = this.currentPointBaseRadius + 0.14;
-
-        const currentPointHead = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.16, 14), this.currentPointMaterial);
+        const currentPointHead = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.16, 14), this.currentPointMaterial);
         currentPointHead.rotation.x = Math.PI;
-        currentPointHead.position.y = this.currentPointBaseRadius + 0.36;
+        currentPointHead.position.y = this.currentPointBaseRadius + 0.14;
+        const currentPointStem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.36, 14), this.currentPointMaterial);
+        currentPointStem.position.y = this.currentPointBaseRadius + 0.4;
+
 
         this.currentPointVisual = new THREE.Group();
         this.currentPointVisual.add(currentPointSphere);
