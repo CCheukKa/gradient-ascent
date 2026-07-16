@@ -1,0 +1,17 @@
+{
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@types/three": "^0.185.1"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "name": "gradient-ascent",
+    "private": true,
+    "scripts": {
+        "build": "bun build index.html --outdir ./dist --target browser --minify --sourcemap=linked"
+    },
+    "dependencies": {
+        "three": "^0.185.1"
+    }
+}

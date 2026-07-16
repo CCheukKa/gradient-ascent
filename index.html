@@ -1,0 +1,26 @@
+<!doctype html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gradient Ascent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:ital,wght@0,200..700;1,200..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="script.ts"></script>
+</head>
+
+<body>
+    <div class="buildWatermark">Build: #!build</div>
+    <div id="mainContainer">
+        <div id="score">Score: 0</div>
+        <template id="sliderTemplate">
+            <div class="slider">
+                <label for="weight">Weight:</label>
+                <input type="range" id="weight" name="weight" min="-10" max="10" step="0.001" />
+            </div>
+        </template>
+    </div>
+</body>
