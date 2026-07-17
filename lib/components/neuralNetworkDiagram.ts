@@ -2,9 +2,9 @@ import { MathExtra } from "@lib/utils/mathExtra";
 import type { Network } from "./neuralNetwork";
 import { drawCircle, drawLine, interpolateColour } from "@lib/utils/canvasUtils";
 
-const LOW_COLOUR = '#1e3a8a';
+const LOW_COLOUR = '#3968e8';
 // const MID_COLOUR = '#f147fd';
-const HIGH_COLOUR = '#ef4444';
+const HIGH_COLOUR = '#ff4d4d';
 
 export function redrawNeuralNetwork(network: Network, canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d")!;
