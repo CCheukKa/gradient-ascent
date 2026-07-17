@@ -218,6 +218,19 @@ body {
             height: 0;
             overflow: hidden;
         }
+
+        .slider {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-weight: normal;
+        }
+    }
+
+    #networkControls .slider {
+        justify-content: flex-end;
     }
 
     input {
@@ -226,16 +239,6 @@ body {
         &[type="range"] {
             width: 200px;
         }
-    }
-
-    .slider {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 5px;
-        font-weight: normal;
-
     }
 
     .parameterControl {
