@@ -22,7 +22,8 @@ export function redrawNeuralNetwork(network: Network, canvas: HTMLCanvasElement)
     const maxLayerSize = Math.max(...layerSizes);
     const nodeRadius = Math.min(
         canvas.height / maxLayerSize / 2 - 2,
-        canvas.width / layerCount / 2 - 3
+        canvas.width / layerCount / 2 - 3,
+        40,
     );
     const nodeHeight = canvas.height / maxLayerSize;
     const layerWidth = (canvas.width - nodeRadius * 2) / (layerCount - 1);

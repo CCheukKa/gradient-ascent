@@ -8,6 +8,7 @@ import { redrawNeuralNetwork } from "@lib/components/neuralNetworkDiagram";
 
 const networkViewElement = document.getElementById("networkView") as HTMLDivElement;
 const networkDiagramCanvas = document.getElementById("networkDiagram") as HTMLCanvasElement;
+const networkLayerControlsElement = document.getElementById("networkLayerControls") as HTMLTextAreaElement;
 const networkControlsElement = document.getElementById("networkControls") as HTMLDivElement;
 const gaussianControlsElement = document.getElementById("gaussianControls") as HTMLDivElement;
 const scoreElement = document.getElementById("score") as HTMLDivElement;
@@ -23,7 +24,7 @@ const ZOOM_SMOOTHING = 0.2;
 const ZOOM_EPSILON = 0.001;
 
 // const network = new Network([2, 4, 1]);
-const network = new Network([2, 4, 4, 4, 1]);
+let network = new Network([2, 4, 4, 4, 1]);
 const randomInput = Array.from({ length: 2 }, () => Math.random());
 const gaussianInput: SurfacePoint = { x: 0, y: 0, z: 0 };
 const gaussianSurface = createRandomGaussianSurface();
@@ -114,7 +115,7 @@ graph.getDomElement().addEventListener("wheel", event => {
     zoomSliderElement.dispatchEvent(new Event("input", { bubbles: true }));
 }, { passive: false });
 
-const controls = createWeightAxisControls({
+let controls = createWeightAxisControls({
     container: networkControlsElement,
     template: sliderTemplateElement,
     weights: network.weights,
@@ -209,6 +210,39 @@ function updateScore() {
     scoreElement.textContent = `Score: ${MathExtra.formatNumber(output * 1000, 0, 6)}`;
     graph.render({ vertices, currentPoint, range: gaussianSurfaceRange, step: surfaceStep });
 }
+
+networkLayerControlsElement.addEventListener('input', () => {
+    networkLayerControlsElement.value = networkLayerControlsElement.value.replace(/[^0-9 ]/g, '');
+    const input = networkLayerControlsElement.value.trim();
+    const newLayerSizes = input.split(' ').map(size => parseInt(size.trim(), 10)).filter(size => !isNaN(size) && size > 0);
+    if (newLayerSizes.some(size => size > 50)) {
+        alert("Layer size cannot be larger than 50");
+        return;
+    }
+    network = new Network([...newLayerSizes, 1]);
+    selectedParameterIndices = createDistinctParameterIndices(network.weights.length + network.biases.length);
+    controls = createWeightAxisControls({
+        container: networkControlsElement,
+        template: sliderTemplateElement,
+        weights: network.weights,
+        biases: network.biases,
+        initialSelectedParameterIndices: selectedParameterIndices,
+        onWeightsChanged: weights => {
+            network.weights = weights;
+            updateScore();
+        },
+        onBiasesChanged: biases => {
+            network.biases = biases;
+            updateScore();
+        },
+        onSelectedParameterIndicesChanged: indices => {
+            selectedParameterIndices = indices;
+            updateScore();
+        },
+    });
+    updateScore();
+    redrawNeuralNetworkDiagram();
+});
 
 syncGaussianInputFromSliders();
 setSurfaceMode(surfaceMode);

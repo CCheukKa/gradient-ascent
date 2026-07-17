@@ -57,6 +57,14 @@ export function createRangeSlider(options: RangeSliderOptions): HTMLInputElement
 }
 
 export function createWeightAxisControls(options: WeightAxisControlsOptions): WeightAxisControls {
+    while (options.container.firstChild) {
+        if (options.container.firstChild !== options.template) {
+            options.container.removeChild(options.container.firstChild);
+        } else {
+            break;
+        }
+    }
+
     const sliders: HTMLInputElement[] = [];
     const axisCheckboxes: HTMLInputElement[] = [];
     let selectedParameterIndices: [number, number] = options.initialSelectedParameterIndices ?? [0, 1];

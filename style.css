@@ -78,7 +78,7 @@ body {
         gap: 15px;
         height: fit-content;
 
-        #layerControls {
+        #networkLayerControls {
             background-color: #00000040;
             color: #ffffff;
             text-align: center;
