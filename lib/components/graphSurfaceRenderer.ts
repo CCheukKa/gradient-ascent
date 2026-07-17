@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { getHeightColor, type Vertex } from "@lib/utils/graphSurface";
 
+const ORBIT_SENSITIVITY = 0.0035;
+
 export enum SurfaceMode {
     Network = "network",
     Gaussian = "gaussian"
@@ -29,6 +31,7 @@ export interface SurfaceGraphOptions {
     container: HTMLElement;
     initialRotationY?: number;
     initialCameraDistance?: number;
+    onOrbitChanged?: (rotationY: number) => void;
 }
 
 export class SurfaceGraph {
@@ -38,10 +41,12 @@ export class SurfaceGraph {
     private readonly graphMaterial: THREE.MeshPhongMaterial;
     private readonly graphLineMaterial: THREE.LineBasicMaterial;
     private readonly currentPointMaterial: THREE.MeshBasicMaterial;
-    private readonly cameraDirection = new THREE.Vector3(1, 1, 1).normalize();
     private readonly currentPointBaseRadius = 0.035;
     private readonly currentPointScreenRadius = 5;
     private readonly currentPointWorldPosition = new THREE.Vector3();
+    private readonly orbitMinPhi = 0.12;
+    private readonly orbitMaxPhi = Math.PI - 0.12;
+    private readonly orbitTarget = new THREE.Vector3(0, 0, 0);
 
     private graphGroup: THREE.Group | null = null;
     private currentPointAnchor: THREE.Group | null = null;
@@ -49,10 +54,19 @@ export class SurfaceGraph {
 
     private graphRotationY: number;
     private cameraDistance: number;
+    private cameraOrbitTheta: number;
+    private cameraOrbitPhi: number;
+    private isDragging = false;
+    private lastPointerX = 0;
+    private lastPointerY = 0;
+    private readonly onOrbitChanged: ((rotationY: number) => void) | undefined;
 
     constructor(options: SurfaceGraphOptions) {
         this.graphRotationY = options.initialRotationY ?? 0;
         this.cameraDistance = options.initialCameraDistance ?? 10;
+        this.onOrbitChanged = options.onOrbitChanged;
+        this.cameraOrbitTheta = Math.atan2(1, 1);
+        this.cameraOrbitPhi = Math.acos(1 / Math.sqrt(3));
 
         this.scene = new THREE.Scene();
         this.scene.background = null;
@@ -63,6 +77,12 @@ export class SurfaceGraph {
         this.renderer.setClearColor(0x000000, 0);
         this.renderer.setSize(Math.ceil(window.innerWidth), Math.ceil(window.innerHeight));
         this.renderer.domElement.classList.add("three-graph");
+        this.renderer.domElement.style.touchAction = "none";
+        this.renderer.domElement.style.cursor = "grab";
+        this.renderer.domElement.addEventListener("pointerdown", this.handlePointerDown);
+        this.renderer.domElement.addEventListener("pointermove", this.handlePointerMove);
+        this.renderer.domElement.addEventListener("pointerup", this.handlePointerUp);
+        this.renderer.domElement.addEventListener("pointerleave", this.handlePointerUp);
         options.container.appendChild(this.renderer.domElement);
 
         this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -108,6 +128,10 @@ export class SurfaceGraph {
         this.renderScene();
     }
 
+    public getDomElement(): HTMLCanvasElement {
+        return this.renderer.domElement;
+    }
+
     public resize(width = window.innerWidth, height = window.innerHeight): void {
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
@@ -135,8 +159,8 @@ export class SurfaceGraph {
 
         const zRange = Math.max(maxZ - minZ, 0.0001);
         for (let i = 0; i < options.vertices.length; i++) {
-            const normalizedZ = (options.vertices[i]!.z - minZ) / zRange;
-            const vertexColor = getHeightColor(normalizedZ);
+            const normalisedZ = (options.vertices[i]!.z - minZ) / zRange;
+            const vertexColor = getHeightColor(normalisedZ);
             colors[i * 3 + 0] = vertexColor.r;
             colors[i * 3 + 1] = vertexColor.g;
             colors[i * 3 + 2] = vertexColor.b;
@@ -248,12 +272,59 @@ export class SurfaceGraph {
     }
 
     private updateCameraPosition(): void {
-        this.camera.position.copy(this.cameraDirection).multiplyScalar(this.cameraDistance);
-        this.camera.lookAt(0, 0, 0);
+        const sinPhi = Math.sin(this.cameraOrbitPhi);
+        this.camera.position.set(
+            this.cameraDistance * sinPhi * Math.cos(this.cameraOrbitTheta),
+            this.cameraDistance * Math.cos(this.cameraOrbitPhi),
+            this.cameraDistance * sinPhi * Math.sin(this.cameraOrbitTheta),
+        );
+        this.camera.lookAt(this.orbitTarget);
     }
 
     private renderScene(): void {
         this.updateCurrentPointScreenSize();
         this.renderer.render(this.scene, this.camera);
     }
+
+    private readonly handlePointerDown = (event: PointerEvent): void => {
+        this.isDragging = true;
+        this.lastPointerX = event.clientX;
+        this.lastPointerY = event.clientY;
+        this.renderer.domElement.setPointerCapture(event.pointerId);
+        this.renderer.domElement.style.cursor = "grabbing";
+    };
+
+    private readonly handlePointerMove = (event: PointerEvent): void => {
+        if (!this.isDragging) {
+            return;
+        }
+
+        const deltaX = event.clientX - this.lastPointerX;
+        const deltaY = event.clientY - this.lastPointerY;
+        this.lastPointerX = event.clientX;
+        this.lastPointerY = event.clientY;
+
+        this.cameraOrbitTheta += deltaX * ORBIT_SENSITIVITY;
+        this.cameraOrbitPhi = THREE.MathUtils.clamp(
+            this.cameraOrbitPhi - deltaY * ORBIT_SENSITIVITY,
+            this.orbitMinPhi,
+            this.orbitMaxPhi,
+        );
+
+        this.updateCameraPosition();
+        this.onOrbitChanged?.(this.cameraOrbitTheta);
+        this.renderScene();
+    };
+
+    private readonly handlePointerUp = (event: PointerEvent): void => {
+        if (!this.isDragging) {
+            return;
+        }
+
+        this.isDragging = false;
+        if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+            this.renderer.domElement.releasePointerCapture(event.pointerId);
+        }
+        this.renderer.domElement.style.cursor = "grab";
+    };
 }

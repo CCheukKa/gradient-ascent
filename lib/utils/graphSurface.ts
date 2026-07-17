@@ -6,8 +6,8 @@ export interface Vertex {
     z: number;
 }
 
-export function getHeightColor(normalizedZ: number): THREE.Color {
-    const clampedZ = THREE.MathUtils.clamp(normalizedZ, 0, 1);
+export function getHeightColor(normalisedZ: number): THREE.Color {
+    const clampedZ = THREE.MathUtils.clamp(normalisedZ, 0, 1);
     const blue = new THREE.Color(0x1e3a8a);
     const yellow = new THREE.Color(0xfde047);
     const red = new THREE.Color(0xef4444);
