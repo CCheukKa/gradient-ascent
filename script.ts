@@ -47,6 +47,10 @@ const graph = new SurfaceGraph({
     initialCameraDistance: parseFloat(zoomSliderElement.max) - parseFloat(zoomSliderElement.value) + parseFloat(zoomSliderElement.min),
 });
 
+window.addEventListener("resize", () => {
+    graph.resize();
+});
+
 const controls = createWeightAxisControls({
     container: networkControlsElement,
     template: sliderTemplateElement,
@@ -142,4 +146,5 @@ function updateScore() {
 
 syncGaussianInputFromSliders();
 setSurfaceMode(surfaceMode);
+graph.resize();
 updateScore();

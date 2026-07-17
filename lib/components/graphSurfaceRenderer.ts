@@ -108,6 +108,13 @@ export class SurfaceGraph {
         this.renderScene();
     }
 
+    public resize(width = window.innerWidth, height = window.innerHeight): void {
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(Math.ceil(width), Math.ceil(height));
+        this.renderScene();
+    }
+
     public render(options: SurfaceRenderOptions): void {
         const numSteps = Math.floor((options.range[1] - options.range[0]) / options.step) + 1;
         const positions = new Float32Array(options.vertices.length * 3);
