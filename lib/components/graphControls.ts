@@ -1,11 +1,12 @@
 import { MathExtra } from "@lib/utils/mathExtra";
+import type { Network } from "./neuralNetwork";
 import { redrawNeuralNetworkDiagram } from "@/script";
+import { getNetworkParametersInNodeOrder, type NetworkParameter } from "@lib/utils/networkSurface";
 
 export interface WeightAxisControlsOptions {
     container: HTMLElement;
     template: HTMLTemplateElement;
-    weights: number[];
-    biases: number[];
+    network: Network;
     initialSelectedParameterIndices?: [number, number];
     onWeightsChanged: (weights: number[]) => void;
     onBiasesChanged: (biases: number[]) => void;
@@ -68,52 +69,62 @@ export function createWeightAxisControls(options: WeightAxisControlsOptions): We
     const sliders: HTMLInputElement[] = [];
     const axisCheckboxes: HTMLInputElement[] = [];
     let selectedParameterIndices: [number, number] = options.initialSelectedParameterIndices ?? [0, 1];
-    const totalWeights = options.weights.length;
-    const totalParameters = totalWeights + options.biases.length;
+    const parameters: NetworkParameter[] = getNetworkParametersInNodeOrder(options.network);
+    const totalParameters = parameters.length;
 
-    const parameters = [
-        ...options.weights.map((value, index) => ({ kind: "weight" as const, index, value })),
-        ...options.biases.map((value, index) => ({ kind: "bias" as const, index, value })),
-    ];
+    function getWeightsFromSliders(): number[] {
+        const weights: number[] = [];
+        for (let i = 0; i < parameters.length; i++) {
+            if (parameters[i]!.kind === "weight") {
+                weights.push(parseFloat(sliders[i]!.value));
+            }
+        }
+        return weights;
+    }
+
+    function getBiasesFromSliders(): number[] {
+        const biases: number[] = [];
+        for (let i = 0; i < parameters.length; i++) {
+            if (parameters[i]!.kind === "bias") {
+                biases.push(parseFloat(sliders[i]!.value));
+            }
+        }
+        return biases;
+    }
 
     for (let i = 0; i < parameters.length; i++) {
         const parameter = parameters[i]!;
         const sliderClone = options.template.content.cloneNode(true) as DocumentFragment;
-        const sliderLabel = sliderClone.querySelector("label") as HTMLLabelElement;
-        const sliderInput = sliderClone.querySelector("input") as HTMLInputElement;
-        const sliderValueDisplay = sliderClone.querySelector("#value") as HTMLSpanElement | null;
+        const sliderLabelText = sliderClone.querySelector(".parameterLabelText") as HTMLSpanElement;
+        const sliderCheckbox = sliderClone.querySelector(".parameterAxisCheckbox") as HTMLInputElement;
+        const sliderInput = sliderClone.querySelector(".parameterControlSlider") as HTMLInputElement;
+        const sliderValueDisplay = sliderClone.querySelector(".parameterControlValue") as HTMLSpanElement;
 
-        sliderInput.id = `${parameter.kind}-${parameter.index}`;
-        sliderInput.name = `${parameter.kind}-${parameter.index}`;
+        const parameterId = `${parameter.kind}-${parameter.layerIndex}-${parameter.nodeIndex}${parameter.kind === "weight" ? `-${parameter.weightIndex}` : ""}`;
+        sliderInput.id = parameterId;
+        sliderInput.name = parameterId;
         sliderInput.value = parameter.value.toString();
 
-        sliderLabel.textContent = `${parameter.kind === "weight" ? "Weight" : "Bias"} ${parameter.index}`;
+        sliderLabelText.textContent = `${parameter.kind === "weight" ? "Weight" : "Bias"} L${(parameter.layerIndex + 1).toString().padStart(2, "0")} N${(parameter.nodeIndex + 1).toString().padStart(2, "0")} ${parameter.kind === "weight" ? `W${(parameter.weightIndex + 1).toString().padStart(2, "0")}` : "B  "}`;
 
-        const axisCheckbox = document.createElement("input");
-        axisCheckbox.type = "checkbox";
-        axisCheckbox.checked = selectedParameterIndices.includes(i);
-        axisCheckbox.style.marginLeft = "8px";
-        axisCheckbox.title = "Use as graph axis";
-        axisCheckbox.ariaLabel = `Use ${sliderLabel.textContent} as graph axis`;
+        sliderCheckbox.checked = selectedParameterIndices.includes(i);
+        sliderCheckbox.title = "Use as graph axis";
+        sliderCheckbox.ariaLabel = `Use ${sliderLabelText.textContent} as graph axis`;
 
-        axisCheckbox.addEventListener("change", () => {
-            selectedParameterIndices = getNextSelectedParameterIndices(selectedParameterIndices, i, axisCheckbox.checked, totalParameters);
+        sliderCheckbox.addEventListener("change", () => {
+            selectedParameterIndices = getNextSelectedParameterIndices(selectedParameterIndices, i, sliderCheckbox.checked, totalParameters);
             applyAxisCheckboxState(axisCheckboxes, selectedParameterIndices);
             options.onSelectedParameterIndicesChanged(selectedParameterIndices);
         });
 
-        axisCheckboxes.push(axisCheckbox);
-        sliderLabel.appendChild(axisCheckbox);
+        axisCheckboxes.push(sliderCheckbox);
 
         sliderInput.addEventListener("input", () => {
             if (sliderValueDisplay) {
                 sliderValueDisplay.textContent = MathExtra.formatNumber(parseFloat(sliderInput.value), 5, 9);
             }
-            if (parameter.kind === "weight") {
-                options.onWeightsChanged(sliders.slice(0, totalWeights).map(slider => parseFloat(slider.value)));
-            } else {
-                options.onBiasesChanged(sliders.slice(totalWeights).map(slider => parseFloat(slider.value)));
-            }
+            options.onWeightsChanged(getWeightsFromSliders());
+            options.onBiasesChanged(getBiasesFromSliders());
             redrawNeuralNetworkDiagram();
         });
 
@@ -133,8 +144,8 @@ export function createWeightAxisControls(options: WeightAxisControlsOptions): We
 
     return {
         sliders,
-        getWeights: () => sliders.slice(0, totalWeights).map(slider => parseFloat(slider.value)),
-        getBiases: () => sliders.slice(totalWeights).map(slider => parseFloat(slider.value)),
+        getWeights: getWeightsFromSliders,
+        getBiases: getBiasesFromSliders,
         getSelectedParameterIndices: () => selectedParameterIndices,
     };
 }

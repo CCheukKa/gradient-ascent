@@ -3,7 +3,7 @@ import { MathExtra } from "@lib/utils/mathExtra";
 import { createWeightAxisControls } from "@lib/components/graphControls";
 import { SurfaceMode, SurfaceGraph, type SurfacePoint } from "@lib/components/graphSurfaceRenderer";
 import { createRandomGaussianSurface, evaluateGaussianSurface, generateGaussianSurfaceMatrix } from "@lib/utils/gaussianSurface";
-import { generateNetworkSurfaceMatrix } from "@lib/utils/networkSurface";
+import { generateNetworkSurfaceMatrix, getNetworkParametersInNodeOrder } from "@lib/utils/networkSurface";
 import { redrawNeuralNetwork } from "@lib/components/neuralNetworkDiagram";
 
 const networkViewElement = document.getElementById("networkView") as HTMLDivElement;
@@ -12,7 +12,7 @@ const networkLayerControlsElement = document.getElementById("networkLayerControl
 const networkControlsElement = document.getElementById("networkControls") as HTMLDivElement;
 const gaussianControlsElement = document.getElementById("gaussianControls") as HTMLDivElement;
 const scoreElement = document.getElementById("score") as HTMLDivElement;
-const sliderTemplateElement = document.getElementById("sliderTemplate") as HTMLTemplateElement;
+const sliderTemplateElement = document.getElementById("parameterControlTemplate") as HTMLTemplateElement | null;
 const modeToggleButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".modeToggleButton"));
 const gaussianXSliderElement = document.getElementById("gaussian-x") as HTMLInputElement;
 const gaussianYSliderElement = document.getElementById("gaussian-y") as HTMLInputElement;
@@ -84,6 +84,10 @@ function createDistinctParameterIndices(totalParameters: number): [number, numbe
 
 let selectedParameterIndices: [number, number] = createDistinctParameterIndices(network.weights.length + network.biases.length);
 
+if (!sliderTemplateElement) {
+    throw new Error("Missing parameterControlTemplate element");
+}
+
 const graph = new SurfaceGraph({
     container: document.body,
     initialRotationY: 0,
@@ -118,8 +122,7 @@ graph.getDomElement().addEventListener("wheel", event => {
 let controls = createWeightAxisControls({
     container: networkControlsElement,
     template: sliderTemplateElement,
-    weights: network.weights,
-    biases: network.biases,
+    network,
     initialSelectedParameterIndices: selectedParameterIndices,
     onWeightsChanged: weights => {
         network.weights = weights;
@@ -190,9 +193,10 @@ function updateScore() {
         const output = network.predict(randomInput);
         scoreElement.textContent = `Score: ${MathExtra.formatNumber(output * 10000, 0, 6)}`;
         const vertices = generateNetworkSurfaceMatrix(network, randomInput, selectedParameterIndices, networkSurfaceRange, surfaceStep);
+        const parameters = getNetworkParametersInNodeOrder(network);
         const currentPoint: SurfacePoint = {
-            x: [...network.weights, ...network.biases][selectedParameterIndices[0]]!,
-            y: [...network.weights, ...network.biases][selectedParameterIndices[1]]!,
+            x: parameters[selectedParameterIndices[0]]!.value,
+            y: parameters[selectedParameterIndices[1]]!.value,
             z: output,
         };
         graph.render({ vertices, currentPoint, range: networkSurfaceRange, step: surfaceStep });
@@ -224,8 +228,7 @@ networkLayerControlsElement.addEventListener('input', () => {
     controls = createWeightAxisControls({
         container: networkControlsElement,
         template: sliderTemplateElement,
-        weights: network.weights,
-        biases: network.biases,
+        network,
         initialSelectedParameterIndices: selectedParameterIndices,
         onWeightsChanged: weights => {
             network.weights = weights;

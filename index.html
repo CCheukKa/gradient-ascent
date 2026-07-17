@@ -45,11 +45,14 @@
                 </div>
             </div>
             <div id="networkControls">
-                <template id="sliderTemplate">
-                    <div class="slider">
-                        <label for="weight">Weight:</label>
-                        <input type="range" id="weight" name="weight" min="-10" max="10" step="0.00001" />
-                        <span id="value">0</span>
+                <template id="parameterControlTemplate">
+                    <div class="parameterControl">
+                        <div class="parameterControlHeader">
+                            <label class="parameterLabelText"></label>
+                            <input type="checkbox" class="parameterAxisCheckbox" />
+                            <input type="range" class="parameterControlSlider" min="-10" max="10" step="0.00001" />
+                            <span class="parameterControlValue">0</span>
+                        </div>
                     </div>
                 </template>
             </div>
