@@ -39,6 +39,20 @@ body {
     z-index: 99999;
 }
 
+.graphParameterControls {
+    background-color: #00000060;
+    max-height: 70svh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: 10px;
+    border-radius: 5px;
+    color-scheme: dark;
+
+    * {
+        color-scheme: light;
+    }
+}
+
 #controlsContainer {
     display: flex;
     flex-direction: column;
@@ -153,20 +167,26 @@ body {
         }
     }
 
-    #networkControls[hidden] {
-        display: none;
-    }
+    #networkControls,
+    #gaussianControls {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
 
-    #gaussianControls[hidden] {
-        display: none;
+        &.hidden {
+            height: 0;
+            overflow: hidden;
+        }
     }
 
     .slider {
         display: flex;
         flex-direction: row;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
         gap: 5px;
+        font-weight: normal;
+        opacity: 0.9;
 
         input[type="range"] {
             width: 200px;

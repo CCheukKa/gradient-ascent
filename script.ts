@@ -17,7 +17,8 @@ const gaussianYValueElement = document.getElementById("gaussian-y-value") as HTM
 const rotationSliderElement = document.getElementById("rotation-y") as HTMLInputElement;
 const zoomSliderElement = document.getElementById("zoom-distance") as HTMLInputElement;
 
-const network = new Network([2, 4, 1]);
+// const network = new Network([2, 4, 1]);
+const network = new Network([2, 4, 4, 4, 1]);
 const randomInput = Array.from({ length: 2 }, () => Math.random());
 const gaussianInput: SurfacePoint = { x: 0, y: 0, z: 0 };
 const gaussianSurface = createRandomGaussianSurface();
@@ -68,8 +69,8 @@ const controls = createWeightAxisControls({
 
 function setSurfaceMode(nextMode: SurfaceMode): void {
     surfaceMode = nextMode;
-    networkControlsElement.hidden = surfaceMode === SurfaceMode.Gaussian;
-    gaussianControlsElement.hidden = surfaceMode === SurfaceMode.Network;
+    networkControlsElement.classList.toggle("hidden", surfaceMode === SurfaceMode.Gaussian);
+    gaussianControlsElement.classList.toggle("hidden", surfaceMode === SurfaceMode.Network);
     for (const button of modeToggleButtons) {
         const isActive = button.dataset["mode"] === surfaceMode;
         button.classList.toggle("is-active", isActive);
