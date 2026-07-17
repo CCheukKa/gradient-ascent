@@ -1,6 +1,10 @@
 import { MathExtra } from "@lib/utils/mathExtra";
 import type { Network } from "./neuralNetwork";
-import { drawCircle, drawLine } from "@lib/utils/canvasUtils";
+import { drawCircle, drawLine, interpolateColour } from "@lib/utils/canvasUtils";
+
+const LOW_COLOUR = '#1e3a8a';
+// const MID_COLOUR = '#f147fd';
+const HIGH_COLOUR = '#ef4444';
 
 export function redrawNeuralNetwork(network: Network, canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d")!;
@@ -45,10 +49,11 @@ export function redrawNeuralNetwork(network: Network, canvas: HTMLCanvasElement)
                 const { x: x2, y: y2 } = nodePositions[i]![k]!;
 
                 const weight = network.layers[i]!.nodes[j]!.weights[k]!;
-                const alpha = MathExtra.interpolate(Math.abs(weight), [-8, 8], [0, 0.5]);
-                const width = MathExtra.interpolate(Math.abs(weight), [-8, 8], [0.05, 3]);
-                const v = weight >= 0 ? 255 : 0;
-                drawLine(ctx, x1, y1, x2, y2, width, `rgba(${v}, ${v}, ${v}, ${alpha})`);
+                const absoluteWeight = Math.abs(weight);
+                const alpha = MathExtra.interpolate(absoluteWeight, [0, 8], [0.5, 0.8]);
+                const width = MathExtra.interpolate(absoluteWeight, [0, 8], [0.5, 5]);
+                const { r, g, b } = interpolateColour(LOW_COLOUR, HIGH_COLOUR, MathExtra.interpolate(weight, [-6, 6], [0, 1]));
+                drawLine(ctx, x1, y1, x2, y2, width, `rgba(${r}, ${g}, ${b}, ${alpha})`);
             }
         }
     }
@@ -62,9 +67,11 @@ export function redrawNeuralNetwork(network: Network, canvas: HTMLCanvasElement)
                 drawCircle(ctx, x, y, nodeRadius, '#ffffff');
             } else {
                 const bias = network.layers[i - 1]!.nodes[j]!.bias;
-                const v = MathExtra.interpolate(bias, [-8, 8], [0, 255]);
-                drawCircle(ctx, x, y, nodeRadius, `rgba(${v}, ${v}, ${v}, 1)`);
-
+                const { r, g, b } = interpolateColour(LOW_COLOUR, HIGH_COLOUR, MathExtra.interpolate(bias, [-8, 8], [0, 1]));
+                // const { r, g, b } = bias < 0
+                //     ? interpolateColour(LOW_COLOUR, MID_COLOUR, MathExtra.interpolate(bias, [-8, 2], [0, 1]))
+                //     : interpolateColour(MID_COLOUR, HIGH_COLOUR, MathExtra.interpolate(bias, [-2, 8], [0, 1]));
+                drawCircle(ctx, x, y, nodeRadius, `rgba(${r}, ${g}, ${b}, 1)`);
                 drawCircle(ctx, x, y, nodeRadius, '#ffffff', true);
             }
         }

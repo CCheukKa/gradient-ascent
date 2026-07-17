@@ -110,3 +110,21 @@ export function getCanvasPoint(canvas: HTMLCanvasElement, clientX: number, clien
         };
     }
 }
+
+export function interpolateColour(colour1: string, colour2: string, t: number): { r: number, g: number, b: number } {
+    const clampedT = MathExtra.clamp(t, 0, 1);
+    const r1 = parseInt(colour1.slice(1, 3), 16);
+    const g1 = parseInt(colour1.slice(3, 5), 16);
+    const b1 = parseInt(colour1.slice(5, 7), 16);
+    const r2 = parseInt(colour2.slice(1, 3), 16);
+    const g2 = parseInt(colour2.slice(3, 5), 16);
+    const b2 = parseInt(colour2.slice(5, 7), 16);
+    const r = Math.round(r1 + (r2 - r1) * clampedT);
+    const g = Math.round(g1 + (g2 - g1) * clampedT);
+    const b = Math.round(b1 + (b2 - b1) * clampedT);
+    return {
+        r,
+        g,
+        b,
+    };
+}
