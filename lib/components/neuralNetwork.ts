@@ -17,7 +17,7 @@ class Layer {
 export class Network {
     //! use the most chaotic function possible
     // public static activationFunction = (x: number): number => x * x * x * (Math.exp(-x * x) + 0.002);
-    public static activationFunction = (x: number): number => 1 * Math.sin(x) * Math.exp(-Math.pow(x / 6, 2));
+    public static activationFunction = (x: number): number => 1 * Math.sin(x) * Math.exp(-Math.pow(x / 8, 2));
     public layers: Layer[];
 
     constructor(layerSizes: number[]) {
