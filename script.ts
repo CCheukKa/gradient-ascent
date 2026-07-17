@@ -43,7 +43,7 @@ let selectedParameterIndices: [number, number] = createDistinctParameterIndices(
 const graph = new SurfaceGraph({
     container: document.body,
     initialRotationY: 0,
-    initialCameraDistance: 10,
+    initialCameraDistance: parseFloat(zoomSliderElement.max) - parseFloat(zoomSliderElement.value) + parseFloat(zoomSliderElement.min),
 });
 
 const controls = createWeightAxisControls({
@@ -90,7 +90,8 @@ rotationSliderElement.addEventListener("input", () => {
 });
 
 zoomSliderElement.addEventListener("input", () => {
-    graph.setCameraDistance(parseFloat(zoomSliderElement.value));
+    const flippedAxisValue = parseFloat(zoomSliderElement.max) - parseFloat(zoomSliderElement.value) + parseFloat(zoomSliderElement.min);
+    graph.setCameraDistance(flippedAxisValue);
 });
 
 function syncGaussianInputFromSliders(): void {
