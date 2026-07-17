@@ -4,7 +4,10 @@ import { createWeightAxisControls } from "@lib/components/graphControls";
 import { SurfaceMode, SurfaceGraph, type SurfacePoint } from "@lib/components/graphSurfaceRenderer";
 import { createRandomGaussianSurface, evaluateGaussianSurface, generateGaussianSurfaceMatrix } from "@lib/utils/gaussianSurface";
 import { generateNetworkSurfaceMatrix } from "@lib/utils/networkSurface";
+import { redrawNeuralNetwork } from "@lib/components/neuralNetworkDiagram";
 
+const networkViewElement = document.getElementById("networkView") as HTMLDivElement;
+const networkDiagramCanvas = document.getElementById("networkDiagram") as HTMLCanvasElement;
 const networkControlsElement = document.getElementById("networkControls") as HTMLDivElement;
 const gaussianControlsElement = document.getElementById("gaussianControls") as HTMLDivElement;
 const scoreElement = document.getElementById("score") as HTMLDivElement;
@@ -133,6 +136,7 @@ const controls = createWeightAxisControls({
 
 function setSurfaceMode(nextMode: SurfaceMode): void {
     surfaceMode = nextMode;
+    networkViewElement.classList.toggle("hidden", surfaceMode === SurfaceMode.Gaussian);
     networkControlsElement.classList.toggle("hidden", surfaceMode === SurfaceMode.Gaussian);
     gaussianControlsElement.classList.toggle("hidden", surfaceMode === SurfaceMode.Network);
     for (const button of modeToggleButtons) {
@@ -210,3 +214,7 @@ syncGaussianInputFromSliders();
 setSurfaceMode(surfaceMode);
 graph.resize();
 updateScore();
+redrawNeuralNetworkDiagram();
+export function redrawNeuralNetworkDiagram() {
+    redrawNeuralNetwork(network, networkDiagramCanvas);
+};

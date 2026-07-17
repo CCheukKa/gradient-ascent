@@ -1,4 +1,5 @@
 import { MathExtra } from "@lib/utils/mathExtra";
+import { redrawNeuralNetworkDiagram } from "@/script";
 
 export interface WeightAxisControlsOptions {
     container: HTMLElement;
@@ -105,6 +106,7 @@ export function createWeightAxisControls(options: WeightAxisControlsOptions): We
             } else {
                 options.onBiasesChanged(sliders.slice(totalWeights).map(slider => parseFloat(slider.value)));
             }
+            redrawNeuralNetworkDiagram();
         });
 
         if (sliderValueDisplay) {

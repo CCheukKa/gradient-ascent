@@ -24,6 +24,13 @@
             <button type="button" class="modeToggleButton" data-mode="gaussian" aria-pressed="true">Gaussians</button>
             <button type="button" class="modeToggleButton" data-mode="network" aria-pressed="false">Network</button>
         </div>
+        <div id="networkView">
+            <canvas id="networkDiagram" height="200" width="400"></canvas>
+            <div class="layers">
+                <textarea name="layerControls" id="layerControls" rows="1">2 4 4 4</textarea>
+                <span>1</span>
+            </div>
+        </div>
         <div class="graphParameterControls">
             <div id="gaussianControls">
                 <div class="slider">

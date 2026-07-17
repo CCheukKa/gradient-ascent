@@ -1,4 +1,5 @@
 * {
+    /* outline: 1px solid #ffffff20; */
     box-sizing: border-box;
     user-select: none;
     transition: all 0.2s ease-in-out;
@@ -41,7 +42,7 @@ body {
 
 .graphParameterControls {
     background-color: #00000060;
-    max-height: 70svh;
+    max-height: calc(70svh - 250px);
     overflow-y: auto;
     scrollbar-width: thin;
     padding: 10px;
@@ -53,12 +54,53 @@ body {
     }
 }
 
+#networkView {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #88888860;
+    gap: 10px;
+    padding: 10px 20px;
+    border-radius: 5px;
+
+    &.hidden {
+        height: 0;
+        overflow: hidden;
+        padding-block: 0;
+    }
+
+    .layers {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        height: fit-content;
+
+        #layerControls {
+            background-color: #00000040;
+            color: #ffffff;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            border: none;
+            border-radius: 2px;
+            font-size: 1rem;
+            resize: none;
+            overflow: hidden;
+            font-family: 'Cascadia Code', 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+    }
+}
+
 #controlsContainer {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 10px;
     position: absolute;
     bottom: 0;
     right: 0;
