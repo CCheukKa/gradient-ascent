@@ -105,7 +105,17 @@ export function createWeightAxisControls(options: WeightAxisControlsOptions): We
         sliderInput.name = parameterId;
         sliderInput.value = parameter.value.toString();
 
-        sliderLabelText.textContent = `${parameter.kind === "weight" ? "Weight" : "Bias"} L${(parameter.layerIndex + 1).toString().padStart(2, "0")} N${(parameter.nodeIndex + 1).toString().padStart(2, "0")} ${parameter.kind === "weight" ? `W${(parameter.weightIndex + 1).toString().padStart(2, "0")}` : "B  "}`;
+        const layerCode = parameter.kind === "weight" && parameter.weightIndex === 0 ? `L${(parameter.layerIndex + 1).toString().padStart(2, "0")}` : "   ";
+        const nodeCode = parameter.kind === "weight" && parameter.weightIndex === 0 ? `N${(parameter.nodeIndex + 1).toString().padStart(2, "0")}` : "   ";
+        const lineSymbol =
+            parameter.kind === "bias"
+                ? "└"
+                : parameter.weightIndex === 0
+                    ? "┬"
+                    : "├";
+
+        // sliderLabelText.textContent = `${parameter.kind === "weight" ? "Weight" : "Bias"} ${layerCode} ${nodeCode} ${parameter.kind === "weight" ? `W${(parameter.weightIndex + 1).toString().padStart(2, "0")}` : "B  "}`;
+        sliderLabelText.textContent = `${layerCode} ${nodeCode} ${lineSymbol} ${parameter.kind === "weight" ? `W${(parameter.weightIndex + 1).toString().padStart(2, "0")}` : "B  "}`;
 
         sliderCheckbox.checked = selectedParameterIndices.includes(i);
         sliderCheckbox.title = "Use as graph axis";
