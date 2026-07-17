@@ -24,7 +24,7 @@
             <button type="button" class="modeToggleButton" data-mode="gaussian" aria-pressed="true">Gaussians</button>
             <button type="button" class="modeToggleButton" data-mode="network" aria-pressed="false">Network</button>
         </div>
-        <div id="networkView">
+        <div id="networkView" class="hidden">
             <canvas id="networkDiagram" height="200" width="400"></canvas>
             <div class="layers">
                 <textarea name="layerControls" id="networkLayerControls" rows="1">2 4 4 4</textarea>
@@ -32,7 +32,7 @@
             </div>
         </div>
         <div class="graphParameterControls">
-            <div id="gaussianControls">
+            <div id="gaussianControls" class="hidden">
                 <div class="slider">
                     <label for="gaussian-x">X Position:</label>
                     <input type="range" id="gaussian-x" name="gaussian-x" min="-10" max="10" step="0.01" value="0" />
